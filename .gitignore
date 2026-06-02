@@ -1,0 +1,28 @@
+# Build output
+out/
+output/
+output.txt
+*.log
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.sln.docstates
+
+# Secrets
+.env
+sparse/DevCert.pfx
+sparse/DevCert.cer
+sparse/*.msix
+
+# Sparse package runtime metadata and old scripts
+sparse/microsoft.system.package.metadata/
+sparse/install-cert.ps1
+
+# Temp files
+src/RCa*
+*.obj
+*.pdb
+*.ilk
+*.exe
