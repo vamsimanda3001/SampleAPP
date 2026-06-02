@@ -32,6 +32,9 @@ add_custom_target(cppwinrt_projection DEPENDS "${CPPWINRT_OUTPUT_DIR}/winrt/base
 # ── Application target ──────────────────────────────────────────────────────
 add_executable(${PROJECT_NAME} WIN32
     src/main.cpp
+    src/utils.cpp
+    src/RemoteDesktopInfo.cpp
+    src/RemoteDesktopRegistrar.cpp
     src/app.rc
 )
 
@@ -40,6 +43,7 @@ add_dependencies(${PROJECT_NAME} cppwinrt_projection)
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         "${CPPWINRT_OUTPUT_DIR}"
+        "${CMAKE_SOURCE_DIR}/src"
 )
 
 target_link_libraries(${PROJECT_NAME}
