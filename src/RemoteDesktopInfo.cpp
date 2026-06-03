@@ -1,3 +1,12 @@
+/// @file RemoteDesktopInfo.cpp
+/// @brief Demonstrates the RemoteDesktopInfo class from Windows.System.RemoteDesktop.Provider.
+///
+/// RemoteDesktopInfo represents a single remote desktop (Cloud PC). The provider
+/// constructs one per Cloud PC and appends it to RemoteDesktopRegistrar::DesktopInfos()
+/// so the Windows shell (Task View) can discover and display it.
+///
+/// API docs: https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopinfo?view=winrt-28000
+
 #include "RemoteDesktopInfo.h"
 #include "utils.h"
 
@@ -7,17 +16,25 @@
 
 namespace rdp = winrt::Windows::System::RemoteDesktop::Provider;
 
+/// Exercises RemoteDesktopInfo: constructs an instance, reads its properties,
+/// and registers it with the shell via RemoteDesktopRegistrar::DesktopInfos().
 void DemoRemoteDesktopInfo()
 {
     Log(L"=== RemoteDesktopInfo Demo ===");
     try
     {
+        // --- Test constructor and properties ---
+        // RemoteDesktopInfo(string id, string displayName)
         rdp::RemoteDesktopInfo info{ L"sample-cloud-pc-id-2", L"Sample Cloud PC-2" };
 
         Log(L"  Created RemoteDesktopInfo:");
-        Log(L"    Id          = %s", info.Id().c_str());
-        Log(L"    DisplayName = %s", info.DisplayName().c_str());
+        Log(L"    Id          = %s", info.Id().c_str());          // Property: Id { get; }
+        Log(L"    DisplayName = %s", info.DisplayName().c_str()); // Property: DisplayName { get; }
 
+        // --- Test registration via RemoteDesktopRegistrar::DesktopInfos() ---
+        // Appending to this IVector writes an entry to the registry at:
+        //   HKCU\...\RemoteSystemProviders\<PFN>\<id>
+        // See: https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopregistrar.desktopinfos?view=winrt-28000
         auto desktopInfos = rdp::RemoteDesktopRegistrar::DesktopInfos();
 
         bool alreadyExists = false;

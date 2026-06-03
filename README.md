@@ -2,14 +2,57 @@
 
 A C++/WinRT Win32 desktop sample app that exercises the [`Windows.System.RemoteDesktop.Provider`](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider?view=winrt-28000) namespace.
 
-This app demonstrates how a third-party provider can register Cloud PCs with the Windows shell (Task View / Switch), read registrar state, and interact with the Remote Desktop Provider APIs.
+## Overview
 
-## What It Does (Phase 1)
+This sample demonstrates how a third-party remote desktop provider (e.g., a Cloud PC client) integrates with the Windows shell to enable features like **Task View switching** and **Cloud PC discovery**. The app uses the `Windows.System.RemoteDesktop.Provider` namespace — a set of Limited Access Feature (LAF) APIs that allow providers to register remote desktops, manage connection state, and respond to user-initiated actions from the local Windows session.
 
-- **RemoteDesktopInfo** — Constructs a Cloud PC entry with an ID and display name, then appends it to the registrar so the Windows shell can discover it.
-- **RemoteDesktopRegistrar** — Reads `IsSwitchToLocalSessionEnabled()` and enumerates registered `DesktopInfos`.
+The APIs require **package identity** (achieved via a sparse MSIX package) and a **LAF unlock token** obtained from Microsoft.
+
+## API Reference
+
+All APIs live under `Windows.System.RemoteDesktop.Provider`. They are gated behind a [Limited Access Feature](https://learn.microsoft.com/en-us/uwp/api/windows.applicationmodel.limitedaccessfeatures) — you must unlock them with a token before use.
+
+### Classes
+
+| Class | Description | Docs |
+|---|---|---|
+| [`RemoteDesktopInfo`](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopinfo?view=winrt-28000) | Represents a single remote desktop (Cloud PC). Constructed with an `id` and `displayName`. The provider creates one of these for each Cloud PC it manages and appends it to the registrar so the Windows shell can discover it. | [API Docs](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopinfo?view=winrt-28000) |
+| [`RemoteDesktopRegistrar`](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopregistrar?view=winrt-28000) | Static class that manages the collection of registered remote desktops. Exposes `DesktopInfos` (an `IVector<RemoteDesktopInfo>` of registered Cloud PCs) and `IsSwitchToLocalSessionEnabled()` (whether the user can switch back to the local desktop). | [API Docs](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopregistrar?view=winrt-28000) |
+| [`RemoteDesktopConnectionInfo`](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopconnectioninfo?view=winrt-28000) | Represents a remote desktop connection on the **local** side. Used to report connection status changes, trigger a switch to the local session, or perform local actions (e.g., open Bluetooth settings) from the remote session. | [API Docs](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopconnectioninfo?view=winrt-28000) |
+| [`RemoteDesktopConnectionRemoteInfo`](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopconnectionremoteinfo?view=winrt-28000) | Represents a remote desktop connection on the **remote** side. Fires events when the user requests a switch to the local session or a local action. The provider subscribes to these events and acts accordingly. Implements `IClosable`. | [API Docs](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopconnectionremoteinfo?view=winrt-28000) |
+| [`PerformLocalActionRequestedEventArgs`](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.performlocalactionrequestedeventargs?view=winrt-28000) | Event args for `RemoteDesktopConnectionRemoteInfo.PerformLocalActionRequested`. Contains the `Action` property indicating which local action the user requested. | [API Docs](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.performlocalactionrequestedeventargs?view=winrt-28000) |
+
+### Enums
+
+| Enum | Values | Description |
+|---|---|---|
+| [`RemoteDesktopConnectionStatus`](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopconnectionstatus?view=winrt-28000) | `Connecting`, `Connected`, `UserInputNeeded`, `Disconnected` | Connection lifecycle states reported via `RemoteDesktopConnectionInfo.SetConnectionStatus()`. |
+| [`RemoteDesktopLocalAction`](https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktoplocalaction?view=winrt-28000) | `ShowBluetoothSettings`, `ShowSystemSoundSettings`, `ShowSystemDisplaySettings`, `ShowSystemAccountSettings`, `ShowLocalSettings` | Local actions that can be triggered from a remote session via `PerformLocalActionFromRemote()`. |
+
+### How the APIs Work Together
+
+1. **Registration**: The provider creates `RemoteDesktopInfo` objects and appends them to `RemoteDesktopRegistrar.DesktopInfos()`. This writes entries to the registry at `HKCU\...\RemoteSystemProviders\<PFN>\<id>` so the Windows shell (Task View) can discover them.
+
+2. **Connection (Local Side)**: When a user launches a Cloud PC, the provider obtains a `RemoteDesktopConnectionInfo` via `GetForLaunchUri()` and reports status changes (`Connecting` → `Connected` → `Disconnected`).
+
+3. **Connection (Remote Side)**: On the remote session, the provider uses `RemoteDesktopConnectionRemoteInfo` to listen for `SwitchToLocalSessionRequested` and `PerformLocalActionRequested` events, then acts on them.
+
+## What This Sample Does
+
+### Currently Implemented (Phase 1)
+
+- **`RemoteDesktopInfo`** — Constructs a Cloud PC entry with an ID and display name, reads back the `Id` and `DisplayName` properties, then appends it to `RemoteDesktopRegistrar.DesktopInfos()` to register it with the Windows shell.
+- **`RemoteDesktopRegistrar`** — Reads the `IsSwitchToLocalSessionEnabled` property and enumerates all registered `DesktopInfos` entries.
 - **Sparse Package Identity** — Uses a sparse MSIX package so the unpackaged Win32 exe gets package identity at runtime (required by the APIs).
-- **Limited Access Feature (LAF)** — Unlocks the gated API using a token tied to the app's Package Family Name.
+- **Limited Access Feature (LAF)** — Unlocks the gated APIs using a token tied to the app's Package Family Name.
+
+### Planned
+
+| Phase | API | What It Will Do |
+|---|---|---|
+| Phase 2 | `RemoteDesktopConnectionInfo` | `GetForLaunchUri`, `SetConnectionStatus`, `SwitchToLocalSession`, `PerformLocalActionFromRemote` |
+| Phase 3 | `RemoteDesktopConnectionRemoteInfo` | `IsSwitchSupported`, `ReportSwitched`, subscribe to `SwitchToLocalSessionRequested` and `PerformLocalActionRequested` events |
+| Phase 4 | `RemoteDesktopRegistrar` | Subscribe to `ConnectionCenterRequested` event |
 
 ## Prerequisites
 
@@ -19,7 +62,7 @@ This app demonstrates how a third-party provider can register Cloud PCs with the
 | IDE | Visual Studio 2022 / 18 2026 Enterprise |
 | Windows SDK | 10.0.26100.0 or later (provides `cppwinrt.exe`, `MakeAppx.exe`, `SignTool.exe`) |
 | CMake | Bundled with Visual Studio or standalone 3.20+ |
-| LAF Token | Request from `lafaccessrequests@microsoft.com` (see [LAF Setup](#laf-token-setup)) |
+| LAF Token | Request from `lafaccessrequests@microsoft.com` (see [LAF Setup](#3-laf-token-setup)) |
 
 ## Build
 
@@ -38,6 +81,8 @@ The exe is produced at `out\build\default\Debug\RemoteDesktopProviderSample.exe`
 The app needs **package identity** to call the Remote Desktop Provider APIs. A sparse MSIX package provides this without sandboxing.
 
 ### 1. Create a Self-Signed Certificate
+
+> **⚠️ Important:** Test the certificate setup and app registration on a clean machine (different from your dev machine) to ensure the steps work end-to-end. Certificate issues are common and easier to catch early on a fresh environment.
 
 ```powershell
 # Generate a self-signed cert (CN must match AppxManifest.xml Publisher)
@@ -125,7 +170,10 @@ The `<msix>` element in the fusion manifest is **the critical piece** — withou
 ├── .gitignore
 ├── README.md
 ├── src/
-│   ├── main.cpp                    # App entry point + API demos
+│   ├── main.cpp                    # Orchestrator — entry point + WndProc
+│   ├── utils.h / utils.cpp         # Helpers: Log, CheckPackageIdentity, UnlockLAF
+│   ├── RemoteDesktopInfo.h/.cpp    # Exercises RemoteDesktopInfo class
+│   ├── RemoteDesktopRegistrar.h/.cpp # Exercises RemoteDesktopRegistrar class
 │   ├── app.rc                      # LAF identity resource + RT_MANIFEST
 │   └── RemoteDesktopProviderSample.exe.manifest  # Fusion manifest with <msix>
 └── sparse/

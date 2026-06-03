@@ -1,4 +1,13 @@
 // RemoteDesktopProviderSample — exercises Windows.System.RemoteDesktop.Provider APIs
+//
+// This is the orchestrator: it initializes logging, checks package identity,
+// creates a window (needed for WindowId-based APIs in later phases), then
+// calls into per-class demo modules on WM_CREATE.
+//
+// No precompiled header (pch.h) is used — the project is small enough that
+// direct includes compile quickly. If build times grow with Phase 2-4,
+// a pch.h can be added to CMakeLists.txt with target_precompile_headers().
+
 #include <windows.h>
 
 #include "utils.h"
