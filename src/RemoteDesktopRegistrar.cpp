@@ -8,12 +8,9 @@
 ///
 /// API docs: https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopregistrar?view=winrt-28000
 
+#include "pch.h"
 #include "RemoteDesktopRegistrar.h"
 #include "utils.h"
-
-#include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Windows.System.RemoteDesktop.Provider.h>
 
 namespace rdp = winrt::Windows::System::RemoteDesktop::Provider;
 

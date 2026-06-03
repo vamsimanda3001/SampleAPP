@@ -14,6 +14,10 @@ void InitLog();
 /// Close the log file handle.
 void CloseLog();
 
+/// Load KEY=VALUE pairs from a .env file into the process environment.
+/// Searches next to the exe first, then walks up parent directories to find .env.
+void LoadEnvFile();
+
 /// Log a formatted wide-string to console, OutputDebugString, and log file.
 void Log(const wchar_t* fmt, ...);
 

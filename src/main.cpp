@@ -3,18 +3,12 @@
 // This is the orchestrator: it initializes logging, checks package identity,
 // creates a window (needed for WindowId-based APIs in later phases), then
 // calls into per-class demo modules on WM_CREATE.
-//
-// No precompiled header (pch.h) is used — the project is small enough that
-// direct includes compile quickly. If build times grow with Phase 2-4,
-// a pch.h can be added to CMakeLists.txt with target_precompile_headers().
 
-#include <windows.h>
+#include "pch.h"
 
 #include "utils.h"
 #include "RemoteDesktopInfo.h"
 #include "RemoteDesktopRegistrar.h"
-
-#include <winrt/Windows.Foundation.h>
 
 // ─── Forward declarations ───────────────────────────────────────────────────
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -43,6 +37,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow)
 {
     winrt::init_apartment();
     InitLog();
+    LoadEnvFile();
 
     Log(L"RemoteDesktopProviderSample starting... (PID=%u)", GetCurrentProcessId());
 
