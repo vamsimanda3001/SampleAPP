@@ -1,20 +1,17 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 // RemoteDesktopProviderSample — exercises Windows.System.RemoteDesktop.Provider APIs
 //
-// This is the orchestrator: it initializes logging, checks package identity,
-// creates a window (needed for WindowId-based APIs in later phases), then
-// calls into per-class demo modules on WM_CREATE.
-//
-// No precompiled header (pch.h) is used — the project is small enough that
-// direct includes compile quickly. If build times grow with Phase 2-4,
-// a pch.h can be added to CMakeLists.txt with target_precompile_headers().
+// This is the orchestrator: it initializes logging, loads .env, checks package
+// identity, creates a window (needed for WindowId-based APIs in later phases),
+// then calls into per-class demo modules on WM_CREATE.
 
-#include <windows.h>
+#include "pch.h"
 
 #include "utils.h"
 #include "RemoteDesktopInfo.h"
 #include "RemoteDesktopRegistrar.h"
-
-#include <winrt/Windows.Foundation.h>
 
 // ─── Forward declarations ───────────────────────────────────────────────────
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -25,9 +22,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     switch (msg)
     {
     case WM_CREATE:
-        UnlockLimitedAccessFeature();
-        DemoRemoteDesktopInfo();
-        DemoRemoteDesktopRegistrar();
+        if (UnlockLimitedAccessFeature())
+        {
+            DemoRemoteDesktopInfo();
+            DemoRemoteDesktopRegistrar();
+        }
+        else
+        {
+            Log(L"LAF unlock failed — skipping Provider API demos.");
+        }
         return 0;
 
     case WM_DESTROY:
@@ -43,19 +46,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow)
 {
     winrt::init_apartment();
     InitLog();
+    LoadEnvFile();
 
     Log(L"RemoteDesktopProviderSample starting... (PID=%u)", GetCurrentProcessId());
 
     CheckPackageIdentity();
 
     // Register window class
-    const wchar_t CLASS_NAME[] = L"RDPProviderSampleClass";
+    const wchar_t className[] = L"RDPProviderSampleClass";
 
     WNDCLASSEXW wc{};
     wc.cbSize = sizeof(wc);
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
-    wc.lpszClassName = CLASS_NAME;
+    wc.lpszClassName = className;
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
 
@@ -63,7 +67,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow)
 
     HWND hwnd = CreateWindowExW(
         0,
-        CLASS_NAME,
+        className,
         L"Remote Desktop Provider Sample",
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT, 800, 600,

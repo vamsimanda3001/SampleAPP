@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 /// @file RemoteDesktopInfo.h
 /// @brief Declaration for the RemoteDesktopInfo demo function.
 

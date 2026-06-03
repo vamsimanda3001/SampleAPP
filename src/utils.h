@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 /// @file utils.h
 /// @brief Utility functions independent of the Provider namespace APIs.
 ///

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 /// @file pch.h
 /// @brief Precompiled header — heavy/common includes parsed once to speed up builds.
 ///
@@ -14,6 +17,8 @@
 // ─── C++ Standard Library ───────────────────────────────────────────────────
 #include <cstdio>
 #include <cstdarg>
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 /// @file RemoteDesktopRegistrar.h
 /// @brief Declaration for the RemoteDesktopRegistrar demo function.
 

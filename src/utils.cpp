@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 /// @file utils.cpp
 /// @brief Implementation of utility functions (logging, package identity, LAF).
 
@@ -16,10 +19,10 @@ void InitLog()
     FILE* fp = nullptr;
     freopen_s(&fp, "CONOUT$", "w", stdout);
 
-    wchar_t exeDir[MAX_PATH]{};
-    GetModuleFileNameW(nullptr, exeDir, MAX_PATH);
-    *wcsrchr(exeDir, L'\\') = L'\0';
-    std::wstring logPath = std::wstring(exeDir) + L"\\output.log";
+    wchar_t exeBuf[MAX_PATH]{};
+    GetModuleFileNameW(nullptr, exeBuf, MAX_PATH);
+    std::filesystem::path exeDir = std::filesystem::path(exeBuf).parent_path();
+    std::wstring logPath = (exeDir / L"output.log").wstring();
     _wfopen_s(&g_logFile, logPath.c_str(), L"w");
 }
 
@@ -39,70 +42,62 @@ void CloseLog()
 void LoadEnvFile()
 {
     // Find exe directory
-    wchar_t exeDir[MAX_PATH]{};
-    GetModuleFileNameW(nullptr, exeDir, MAX_PATH);
-    *wcsrchr(exeDir, L'\\') = L'\0';
+    wchar_t exeBuf[MAX_PATH]{};
+    GetModuleFileNameW(nullptr, exeBuf, MAX_PATH);
+    std::filesystem::path dir = std::filesystem::path(exeBuf).parent_path();
 
     // Walk up from exe directory looking for .env
-    std::wstring dir = exeDir;
-    std::wstring envPath;
+    std::filesystem::path envPath;
     while (true)
     {
-        std::wstring candidate = dir + L"\\.env";
-        if (GetFileAttributesW(candidate.c_str()) != INVALID_FILE_ATTRIBUTES)
+        std::filesystem::path candidate = dir / L".env";
+        if (std::filesystem::exists(candidate))
         {
             envPath = candidate;
             break;
         }
-        // Go up one level
-        auto pos = dir.find_last_of(L'\\');
-        if (pos == std::wstring::npos || pos == 0)
+        std::filesystem::path parent = dir.parent_path();
+        if (parent == dir)
             break;
-        dir = dir.substr(0, pos);
+        dir = parent;
     }
 
     if (envPath.empty())
         return;
 
-    FILE* f = nullptr;
-    _wfopen_s(&f, envPath.c_str(), L"r");
-    if (!f)
+    std::ifstream file(envPath);
+    if (!file.is_open())
         return;
 
-    char line[512];
-    while (fgets(line, sizeof(line), f))
+    std::string line;
+    while (std::getline(file, line))
     {
         // Skip comments and blank lines
-        if (line[0] == '#' || line[0] == '\n' || line[0] == '\r')
+        if (line.empty() || line[0] == '#')
             continue;
 
         // Find the '=' separator
-        char* eq = strchr(line, '=');
-        if (!eq)
+        size_t eqPos = line.find('=');
+        if (eqPos == std::string::npos)
             continue;
 
-        *eq = '\0';
-        char* value = eq + 1;
+        std::string key = line.substr(0, eqPos);
+        std::string value = line.substr(eqPos + 1);
 
-        // Trim trailing newline from value
-        size_t len = strlen(value);
-        while (len > 0 && (value[len - 1] == '\n' || value[len - 1] == '\r'))
-            value[--len] = '\0';
+        // Trim trailing \r (CRLF line endings)
+        if (!value.empty() && value.back() == '\r')
+            value.pop_back();
 
         // Convert to wide strings and set env var (only if not already set)
-        wchar_t wKey[256]{}, wVal[256]{};
-        MultiByteToWideChar(CP_UTF8, 0, line, -1, wKey, 256);
-        MultiByteToWideChar(CP_UTF8, 0, value, -1, wVal, 256);
+        std::wstring wKey(key.begin(), key.end());
+        std::wstring wVal(value.begin(), value.end());
 
         // Don't overwrite vars already set in the shell
-        wchar_t existing[4]{};
-        if (GetEnvironmentVariableW(wKey, existing, 4) == 0)
+        if (GetEnvironmentVariableW(wKey.c_str(), nullptr, 0) == 0)
         {
-            SetEnvironmentVariableW(wKey, wVal);
+            SetEnvironmentVariableW(wKey.c_str(), wVal.c_str());
         }
     }
-
-    fclose(f);
 }
 
 /// Printf-style wide-string logging to console, OutputDebugString, and log file.
@@ -147,7 +142,7 @@ bool CheckPackageIdentity()
         try
         {
             winrt::Windows::Management::Deployment::PackageManager pm;
-            auto packages = pm.FindPackagesForUser(L"");
+            winrt::Windows::Foundation::Collections::IIterable<winrt::Windows::ApplicationModel::Package> packages = pm.FindPackagesForUser(L"");
             bool found = false;
             for (const auto& pkg : packages)
             {
@@ -201,7 +196,7 @@ bool CheckPackageIdentity()
         Log(L"  GetCurrentPackageId rc = %ld, bufLen = %u", rc2, bufLen);
         if (rc2 == ERROR_INSUFFICIENT_BUFFER && bufLen > 0)
         {
-            std::vector<BYTE> buf(bufLen);
+            std::vector<uint8_t> buf(bufLen);
             rc2 = GetCurrentPackageId(&bufLen, buf.data());
             if (rc2 == ERROR_SUCCESS)
             {
@@ -224,47 +219,74 @@ bool CheckPackageIdentity()
 bool UnlockLimitedAccessFeature()
 {
     Log(L"=== Unlocking Limited Access Feature ===");
-    try
+
+    // Defensive check: LAF requires package identity. Fail early with a clear message
+    // rather than letting TryUnlockFeature throw a cryptic RPC_E_SERVERFAULT.
     {
-        wchar_t tokenBuf[256]{};
-        if (!GetEnvironmentVariableW(L"LAF_TOKEN", tokenBuf, 256))
+        UINT32 length = 0;
+        if (GetCurrentPackageFullName(&length, nullptr) == APPMODEL_ERROR_NO_PACKAGE)
         {
-            Log(L"  [ERROR] LAF_TOKEN not set. Create .env with LAF_TOKEN=your-token");
+            Log(L"  [ERROR] No package identity — LAF unlock requires a sparse package.");
+            Log(L"  Recovery: run setup-sparse-package.ps1 to register the sparse package.");
             return false;
         }
+    }
 
-        auto result = app::LimitedAccessFeatures::TryUnlockFeature(
+    DWORD tokenLen = GetEnvironmentVariableW(L"LAF_TOKEN", nullptr, 0);
+    if (tokenLen == 0)
+    {
+        Log(L"  [ERROR] LAF_TOKEN not set. Create .env with LAF_TOKEN=your-token");
+        return false;
+    }
+    std::wstring token(tokenLen, L'\0');
+    GetEnvironmentVariableW(L"LAF_TOKEN", token.data(), tokenLen);
+    token.resize(tokenLen - 1);
+
+    // TryUnlockFeature can throw hresult_error if the package identity or attestation
+    // string is invalid. The first-chance 0x80040111 (CO_E_OBJNOTCONNECTED) is expected
+    // and handled internally by the API; it does not indicate a real failure.
+    app::LimitedAccessFeatureRequestResult result{ nullptr };
+    try
+    {
+        result = app::LimitedAccessFeatures::TryUnlockFeature(
             L"com.microsoft.windows.system.remotedesktop.provider_v1",
-            tokenBuf,
+            token.c_str(),
             L"955ksfw34s3d4 has registered their use of com.microsoft.windows.system.remotedesktop.provider_v1 with Microsoft and agrees to the terms of use.");
-
-        auto status = result.Status();
-        if (status == app::LimitedAccessFeatureStatus::Available)
-        {
-            Log(L"  LAF Status: Available");
-            return true;
-        }
-        else if (status == app::LimitedAccessFeatureStatus::AvailableWithoutToken)
-        {
-            Log(L"  LAF Status: AvailableWithoutToken");
-            return true;
-        }
-        else if (status == app::LimitedAccessFeatureStatus::Unavailable)
-        {
-            Log(L"  LAF Status: Unavailable");
-        }
-        else if (status == app::LimitedAccessFeatureStatus::Unknown)
-        {
-            Log(L"  LAF Status: Unknown");
-        }
-        else
-        {
-            Log(L"  LAF Status: %d", static_cast<int>(status));
-        }
     }
     catch (const winrt::hresult_error& ex)
     {
-        Log(L"  LAF ERROR (0x%08X): %s", static_cast<uint32_t>(ex.code()), ex.message().c_str());
+        // Typical causes: invalid PFN in attestation string, or the COM server for LAF
+        // is not available on this OS build. Recovery: verify the PFN matches the
+        // sparse package and that the OS is Windows 11 Build 26100+.
+        Log(L"  TryUnlockFeature threw (0x%08X): %s",
+            static_cast<uint32_t>(ex.code()), ex.message().c_str());
+        Log(L"  Recovery: verify PFN, OS build (26100+), and LAF_TOKEN value.");
+        return false;
     }
+
+    app::LimitedAccessFeatureStatus status = result.Status();
+    if (status == app::LimitedAccessFeatureStatus::Available)
+    {
+        Log(L"  LAF Status: Available");
+        return true;
+    }
+    else if (status == app::LimitedAccessFeatureStatus::AvailableWithoutToken)
+    {
+        Log(L"  LAF Status: AvailableWithoutToken");
+        return true;
+    }
+    else if (status == app::LimitedAccessFeatureStatus::Unavailable)
+    {
+        Log(L"  LAF Status: Unavailable");
+    }
+    else if (status == app::LimitedAccessFeatureStatus::Unknown)
+    {
+        Log(L"  LAF Status: Unknown");
+    }
+    else
+    {
+        Log(L"  LAF Status: %d", static_cast<int>(status));
+    }
+
     return false;
 }
