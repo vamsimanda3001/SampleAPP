@@ -6,6 +6,5 @@
 
 #pragma once
 
-/// Exercises RemoteDesktopInfo: constructor, Id/DisplayName properties, and
-/// registration via RemoteDesktopRegistrar::DesktopInfos().Append().
+/// Exercises RemoteDesktopInfo: constructor and read-only properties (Id, DisplayName).
 void DemoRemoteDesktopInfo();

@@ -11,22 +11,27 @@
 
 #include <cstdio>
 
-/// Initialize console output and open a log file next to the exe.
+/// Allocates a console window and opens output.log next to the exe.
 void InitLog();
 
-/// Close the log file handle.
+/// Close the log file handle opened by InitLog().
 void CloseLog();
 
 /// Load KEY=VALUE pairs from a .env file into the process environment.
 /// Searches next to the exe first, then walks up parent directories to find .env.
+/// Only sets variables that are not already present in the environment.
 void LoadEnvFile();
 
-/// Log a formatted wide-string to console, OutputDebugString, and log file.
+/// Printf-style wide-string logging to console, OutputDebugString, and log file.
 void Log(const wchar_t* fmt, ...);
 
-/// Verify the process has sparse package identity. Returns true if identity is present.
+/// Check whether this process has sparse package identity.
+/// If identity is missing, enumerates registered packages and prints diagnostic info.
+/// Returns true if the process has package identity.
 bool CheckPackageIdentity();
 
-/// Unlock the Remote Desktop Provider LAF using the LAF_TOKEN environment variable.
+/// Unlock the Remote Desktop Provider Limited Access Feature.
+/// Reads the LAF token from the LAF_TOKEN environment variable (set via .env or shell).
 /// Returns true if the feature status is Available or AvailableWithoutToken.
+/// @note The first-chance exception 0x80040111 during TryUnlockFeature is normal and expected.
 bool UnlockLimitedAccessFeature();

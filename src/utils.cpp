@@ -12,7 +12,6 @@ namespace app = winrt::Windows::ApplicationModel;
 // ─── Logging ────────────────────────────────────────────────────────────────
 static FILE* g_logFile = nullptr;
 
-/// Allocates a console window and opens output.log next to the exe.
 void InitLog()
 {
     AllocConsole();
@@ -26,7 +25,6 @@ void InitLog()
     _wfopen_s(&g_logFile, logPath.c_str(), L"w");
 }
 
-/// Closes the log file handle opened by InitLog().
 void CloseLog()
 {
     if (g_logFile)
@@ -36,9 +34,6 @@ void CloseLog()
     }
 }
 
-/// Loads KEY=VALUE pairs from a .env file into the process environment.
-/// Searches next to the exe first, then walks up parent directories until
-/// the repo root (where .gitignore lives) or drive root is reached.
 void LoadEnvFile()
 {
     // Find exe directory
@@ -100,7 +95,6 @@ void LoadEnvFile()
     }
 }
 
-/// Printf-style wide-string logging to console, OutputDebugString, and log file.
 void Log(const wchar_t* fmt, ...)
 {
     wchar_t buf[1024];
@@ -120,9 +114,6 @@ void Log(const wchar_t* fmt, ...)
 }
 
 // ─── Package Identity Check ─────────────────────────────────────────────────
-/// Checks whether this process has sparse package identity.
-/// If identity is missing, attempts to find the package in the registered packages list
-/// and prints diagnostic info. Returns true if the process has package identity.
 bool CheckPackageIdentity()
 {
     Log(L"=== Package Identity Check ===");
@@ -211,11 +202,6 @@ bool CheckPackageIdentity()
 }
 
 // ─── LAF Unlock ─────────────────────────────────────────────────────────────
-/// Unlocks the Remote Desktop Provider Limited Access Feature.
-/// Reads the LAF token from the LAF_TOKEN environment variable (set via .env or shell).
-/// Returns true if the feature is unlocked (Available or AvailableWithoutToken).
-///
-/// The first-chance exception 0x80040111 during TryUnlockFeature is normal and expected.
 bool UnlockLimitedAccessFeature()
 {
     Log(L"=== Unlocking Limited Access Feature ===");

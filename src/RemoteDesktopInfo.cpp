@@ -16,7 +16,6 @@
 
 namespace rdp = winrt::Windows::System::RemoteDesktop::Provider;
 
-/// Exercises RemoteDesktopInfo: constructor and read-only properties.
 void DemoRemoteDesktopInfo()
 {
     Log(L"=== RemoteDesktopInfo Demo ===");

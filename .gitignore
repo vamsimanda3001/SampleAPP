@@ -26,3 +26,5 @@ src/RCa*
 *.pdb
 *.ilk
 *.exe
+
+.playwright-mcp/

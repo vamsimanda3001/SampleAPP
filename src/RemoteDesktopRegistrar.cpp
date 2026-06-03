@@ -5,9 +5,9 @@
 /// @brief Demonstrates the RemoteDesktopRegistrar class from Windows.System.RemoteDesktop.Provider.
 ///
 /// RemoteDesktopRegistrar is a static class that manages registered Cloud PCs.
-/// This file tests all its static properties and methods:
-///   - IsSwitchToLocalSessionEnabled (property)
-///   - DesktopInfos (property) — including Append and enumeration
+/// This file exercises all its static methods:
+///   - IsSwitchToLocalSessionEnabled() — whether the user can switch to local desktop
+///   - DesktopInfos() — IVector of registered Cloud PCs, including Append and enumeration
 ///
 /// API docs: https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopregistrar?view=winrt-28000
 
@@ -17,12 +17,12 @@
 
 namespace rdp = winrt::Windows::System::RemoteDesktop::Provider;
 
-/// Exercises RemoteDesktopRegistrar's static properties and methods.
 void DemoRemoteDesktopRegistrar()
 {
     Log(L"=== RemoteDesktopRegistrar Demo ===");
 
-    // --- Property: IsSwitchToLocalSessionEnabled ---
+    // --- Static method: IsSwitchToLocalSessionEnabled ---
+    // Although defined as a property in WinRT IDL, C++/WinRT projects it as a static method.
     // See: https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopregistrar.isswitchtolocalsessionenabled?view=winrt-28000
     bool switchEnabled = rdp::RemoteDesktopRegistrar::IsSwitchToLocalSessionEnabled();
     Log(L"  IsSwitchToLocalSessionEnabled = %s", switchEnabled ? L"true" : L"false");

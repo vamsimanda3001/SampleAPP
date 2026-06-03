@@ -6,6 +6,6 @@
 
 #pragma once
 
-/// Exercises RemoteDesktopRegistrar static properties: IsSwitchToLocalSessionEnabled
-/// and DesktopInfos enumeration.
+/// Exercises RemoteDesktopRegistrar static methods: IsSwitchToLocalSessionEnabled()
+/// and DesktopInfos() (including Append and enumeration of registered Cloud PCs).
 void DemoRemoteDesktopRegistrar();

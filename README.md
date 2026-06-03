@@ -150,6 +150,9 @@ After running, verify the Cloud PC appears in the registry:
 ```
 HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\RemoteSystemProviders\<PFN>\<id>
 ```
+Where:
+- **`<PFN>`** is the Package Family Name of your app (e.g., `RemoteDesktopProviderSample_955ksfw34s3d4`). This is assigned when the sparse package is registered and uniquely identifies your provider.
+- **`<id>`** is the `id` string passed to the `RemoteDesktopInfo` constructor (e.g., `sample-cloud-pc-id-2`). Each Cloud PC you register gets its own subkey under the PFN.
 
 ## How Sparse Package Identity Works
 
@@ -160,6 +163,33 @@ A Win32 desktop app normally runs without package identity. The sparse MSIX patt
 3. **Registration** via `Add-AppxPackage -Register ... -ExternalLocation` links the manifest to the exe's directory.
 
 The `<msix>` element in the fusion manifest is **the critical piece** — without it, the process starts without identity even if the package is registered.
+
+### AppxManifest.xml Fields
+
+The sparse package manifest at `sparse/AppxManifest.xml` contains these key fields:
+
+| Field | Value | Purpose |
+|---|---|---|
+| `Identity.Name` | `RemoteDesktopProviderSample` | Package name — must match the `packageName` in the embedded fusion manifest |
+| `Identity.Publisher` | `CN=RemoteDesktopProviderSample` | Must exactly match the Subject of the signing certificate |
+| `Identity.Version` | `1.0.0.0` | Package version — increment when updating the registration |
+| `Identity.ProcessorArchitecture` | `x64` | Target architecture |
+| `uap10:AllowExternalContent` | `true` | Enables the sparse pattern — content (the exe) lives outside the package |
+| `uap10:RuntimeBehavior` | `win32App` | Tells Windows this is a classic Win32 app, not a UWP sandbox |
+| `desktop6:MutableLocation` | on `Application` | Allows the exe to run from a writable directory (build output) |
+
+### Embedded Fusion Manifest
+
+The exe's embedded manifest (`src/RemoteDesktopProviderSample.exe.manifest`) must contain an `<msix>` element with three attributes matching the AppxManifest.xml:
+
+```xml
+<msix xmlns="urn:schemas-microsoft-com:msix.v1"
+      publisher="CN=RemoteDesktopProviderSample"
+      packageName="RemoteDesktopProviderSample"
+      applicationId="App" />
+```
+
+If any of these values don't match, the process will start **without** package identity and all Provider API calls will fail with `E_ACCESSDENIED`.
 
 ## Project Structure
 

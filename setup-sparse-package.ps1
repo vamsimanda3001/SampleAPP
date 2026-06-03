@@ -18,7 +18,18 @@ $cerPath    = Join-Path $sparseDir "DevCert.cer"
 $manifestDir = $sparseDir
 $exeDir     = Join-Path $scriptDir "out\build\default\Debug"
 
-$sdkBin     = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64"
+# Auto-detect the latest installed Windows SDK version
+$sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
+$sdkVersion = Get-ChildItem $sdkRoot -Directory |
+    Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+    Sort-Object { [version]$_.Name } -Descending |
+    Select-Object -First 1 -ExpandProperty Name
+
+if (-not $sdkVersion) {
+    Write-Error "No Windows SDK found under $sdkRoot"
+}
+
+$sdkBin     = Join-Path $sdkRoot "$sdkVersion\x64"
 $makeAppx   = Join-Path $sdkBin "makeappx.exe"
 $signTool   = Join-Path $sdkBin "signtool.exe"
 
