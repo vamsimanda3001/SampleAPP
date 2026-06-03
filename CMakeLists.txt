@@ -63,12 +63,6 @@ target_compile_options(${PROJECT_NAME}
         /EHsc
 )
 
-# Precompiled header — heavy WinRT/Windows includes parsed once
-target_precompile_headers(${PROJECT_NAME}
-    PRIVATE
-        src/pch.h
-)
-
 # Disable linker-generated manifest — we embed our own via app.rc
 # (contains the <msix> element needed for sparse package identity)
 target_link_options(${PROJECT_NAME}
