@@ -12,8 +12,8 @@ output.txt
 
 # Secrets
 .env
-sparse/DevCert.pfx
-sparse/DevCert.cer
+sparse/*.pfx
+sparse/*.cer
 sparse/*.msix
 
 # Sparse package runtime metadata and old scripts
