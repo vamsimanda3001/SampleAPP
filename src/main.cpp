@@ -28,7 +28,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             }
             else
             {
-                Log(L"LAF unlock failed — skipping Provider API demos.");
+                Log(L"LAF unlock failed -- skipping Provider API demos.");
             }
         }
         catch (const winrt::hresult_error& ex)

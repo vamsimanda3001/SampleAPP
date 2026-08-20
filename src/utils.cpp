@@ -224,7 +224,7 @@ bool UnlockLimitedAccessFeature()
         UINT32 length = 0;
         if (GetCurrentPackageFullName(&length, nullptr) == APPMODEL_ERROR_NO_PACKAGE)
         {
-            Log(L"  [ERROR] No package identity — LAF unlock requires a sparse package.");
+            Log(L"  [ERROR] No package identity -- LAF unlock requires a sparse package.");
             Log(L"  Recovery: run setup-sparse-package.ps1 to register the sparse package.");
             return false;
         }

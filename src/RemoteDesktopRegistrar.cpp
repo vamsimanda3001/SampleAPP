@@ -85,7 +85,7 @@ void DemoRemoteDesktopRegistrar()
         Log(L"  Recovery: verify LAF token is valid and the feature status is Available.");
         return;
     }
-    Log(L"  Appended '%s' to DesktopInfos — should now appear in registry", sampleId);
+    Log(L"  Appended '%s' to DesktopInfos -- should now appear in registry", sampleId);
 
     // --- RemoveAt: clean up the entry we just added ---
     // Demonstrating RemoveAt keeps the sample self-cleaning and idempotent: the sample id
@@ -94,7 +94,7 @@ void DemoRemoteDesktopRegistrar()
     try
     {
         desktopInfos.RemoveAt(desktopInfos.Size() - 1);
-        Log(L"  Removed '%s' from DesktopInfos — registry entry cleaned up", sampleId);
+        Log(L"  Removed '%s' from DesktopInfos -- registry entry cleaned up", sampleId);
     }
     catch (const winrt::hresult_error& ex)
     {
