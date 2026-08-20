@@ -12,6 +12,7 @@
 #include "utils.h"
 #include "RemoteDesktopInfo.h"
 #include "RemoteDesktopRegistrar.h"
+#include "RemoteDesktopConnectionInfo.h"
 
 // ─── Window procedure ──────────────────────────────────────────────────────
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -25,6 +26,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 DemoRemoteDesktopInfo();
                 DemoRemoteDesktopRegistrar();
+                DemoRemoteDesktopConnectionInfo(hwnd);
             }
             else
             {

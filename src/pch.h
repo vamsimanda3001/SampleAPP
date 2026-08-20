@@ -29,4 +29,5 @@
 // ─── WinRT projections used by this project ─────────────────────────────────
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.Management.Deployment.h>
+#include <winrt/Windows.UI.h>
 #include <winrt/Windows.System.RemoteDesktop.Provider.h>
