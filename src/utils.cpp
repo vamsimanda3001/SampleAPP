@@ -53,35 +53,47 @@ void LoadEnvFile()
         }
         std::filesystem::path parent = dir.parent_path();
         if (parent == dir)
+        {
             break;
+        }
         dir = parent;
     }
 
     if (envPath.empty())
+    {
         return;
+    }
 
     std::ifstream file(envPath);
     if (!file.is_open())
+    {
         return;
+    }
 
     std::string line;
     while (std::getline(file, line))
     {
         // Skip comments and blank lines
         if (line.empty() || line[0] == '#')
+        {
             continue;
+        }
 
         // Find the '=' separator
         size_t eqPos = line.find('=');
         if (eqPos == std::string::npos)
+        {
             continue;
+        }
 
         std::string key = line.substr(0, eqPos);
         std::string value = line.substr(eqPos + 1);
 
         // Trim trailing \r (CRLF line endings)
         if (!value.empty() && value.back() == '\r')
+        {
             value.pop_back();
+        }
 
         // Convert to wide strings and set env var (only if not already set)
         std::wstring wKey(key.begin(), key.end());

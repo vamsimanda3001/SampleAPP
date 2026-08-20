@@ -13,23 +13,28 @@
 #include "RemoteDesktopInfo.h"
 #include "RemoteDesktopRegistrar.h"
 
-// ─── Forward declarations ───────────────────────────────────────────────────
-LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-
 // ─── Window procedure ──────────────────────────────────────────────────────
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
     case WM_CREATE:
-        if (UnlockLimitedAccessFeature())
+        try
         {
-            DemoRemoteDesktopInfo();
-            DemoRemoteDesktopRegistrar();
+            if (UnlockLimitedAccessFeature())
+            {
+                DemoRemoteDesktopInfo();
+                DemoRemoteDesktopRegistrar();
+            }
+            else
+            {
+                Log(L"LAF unlock failed — skipping Provider API demos.");
+            }
         }
-        else
+        catch (const winrt::hresult_error& ex)
         {
-            Log(L"LAF unlock failed — skipping Provider API demos.");
+            Log(L"Unhandled error during Provider demos (0x%08X): %s",
+                static_cast<uint32_t>(ex.code()), ex.message().c_str());
         }
         return 0;
 
@@ -82,10 +87,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow)
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
 
-    // Message loop
+    // Message loop. GetMessageW returns -1 on error (e.g. an invalid hwnd),
+    // which must be handled explicitly — treating it as truthy would loop forever.
     MSG msg{};
-    while (GetMessageW(&msg, nullptr, 0, 0))
+    BOOL getMessageResult;
+    while ((getMessageResult = GetMessageW(&msg, nullptr, 0, 0)) != 0)
     {
+        if (getMessageResult == -1)
+        {
+            Log(L"GetMessageW failed (error %u)", GetLastError());
+            break;
+        }
+
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
     }

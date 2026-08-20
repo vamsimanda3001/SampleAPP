@@ -24,10 +24,13 @@ void DemoRemoteDesktopInfo()
     // The constructor can throw RPC_E_SERVERFAULT (0x80010105) if the Remote Desktop
     // Provider COM server is unavailable, or E_ACCESSDENIED if the LAF has not been
     // unlocked. Ensure UnlockLimitedAccessFeature() succeeds before calling this.
+    constexpr wchar_t sampleId[] = L"sample-cloud-pc-id";
+    constexpr wchar_t sampleDisplayName[] = L"Sample Cloud PC";
+
     rdp::RemoteDesktopInfo info{ nullptr };
     try
     {
-        info = rdp::RemoteDesktopInfo{ L"sample-cloud-pc-id-2", L"Sample Cloud PC-2" };
+        info = rdp::RemoteDesktopInfo{ sampleId, sampleDisplayName };
     }
     catch (const winrt::hresult_error& ex)
     {

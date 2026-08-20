@@ -21,11 +21,26 @@ void DemoRemoteDesktopRegistrar()
 {
     Log(L"=== RemoteDesktopRegistrar Demo ===");
 
+    // Sample Cloud PC identity. Kept as constexpr locals so the id/name cannot drift
+    // between the append and remove steps below.
+    constexpr wchar_t sampleId[] = L"sample-cloud-pc-id";
+    constexpr wchar_t sampleDisplayName[] = L"Sample Cloud PC";
+
     // --- Static method: IsSwitchToLocalSessionEnabled ---
     // Although defined as a property in WinRT IDL, C++/WinRT projects it as a static method.
+    // Guarded like the other Provider calls: it can throw E_ACCESSDENIED when the LAF is
+    // not unlocked or the process lacks package identity.
     // See: https://learn.microsoft.com/en-us/uwp/api/windows.system.remotedesktop.provider.remotedesktopregistrar.isswitchtolocalsessionenabled?view=winrt-28000
-    bool switchEnabled = rdp::RemoteDesktopRegistrar::IsSwitchToLocalSessionEnabled();
-    Log(L"  IsSwitchToLocalSessionEnabled = %s", switchEnabled ? L"true" : L"false");
+    try
+    {
+        bool switchEnabled = rdp::RemoteDesktopRegistrar::IsSwitchToLocalSessionEnabled();
+        Log(L"  IsSwitchToLocalSessionEnabled = %s", switchEnabled ? L"true" : L"false");
+    }
+    catch (const winrt::hresult_error& ex)
+    {
+        Log(L"  IsSwitchToLocalSessionEnabled failed (0x%08X): %s",
+            static_cast<uint32_t>(ex.code()), ex.message().c_str());
+    }
 
     // --- Property: DesktopInfos ---
     // Returns IVector<RemoteDesktopInfo> of all registered Cloud PCs.
@@ -45,40 +60,45 @@ void DemoRemoteDesktopRegistrar()
         Log(L"  Recovery: ensure LAF is unlocked and sparse package is registered.");
         return;
     }
-    Log(L"  DesktopInfos count = %u", desktopInfos.Size());
 
-    // Register a sample Cloud PC (skip if already present)
-    const wchar_t* sampleId = L"sample-cloud-pc-id-2";
-    bool alreadyExists = false;
-    for (uint32_t i = 0; i < desktopInfos.Size(); ++i)
+    // Cache the size once rather than re-evaluating the projected call each iteration.
+    uint32_t count = desktopInfos.Size();
+    Log(L"  DesktopInfos count = %u", count);
+
+    for (uint32_t i = 0; i < count; ++i)
     {
         rdp::RemoteDesktopInfo entry = desktopInfos.GetAt(i);
         Log(L"    [%u] Id=%s  DisplayName=%s", i, entry.Id().c_str(), entry.DisplayName().c_str());
-        if (entry.Id() == sampleId)
-        {
-            alreadyExists = true;
-        }
     }
 
-    if (!alreadyExists)
+    // --- Append: register a sample Cloud PC ---
+    // Append can throw E_ACCESSDENIED if the LAF is not unlocked.
+    rdp::RemoteDesktopInfo info{ sampleId, sampleDisplayName };
+    try
     {
-        rdp::RemoteDesktopInfo info{ sampleId, L"Sample Cloud PC-2" };
-        // Append can throw E_ACCESSDENIED if the LAF is not unlocked.
-        try
-        {
-            desktopInfos.Append(info);
-        }
-        catch (const winrt::hresult_error& ex)
-        {
-            Log(L"  Append failed (0x%08X): %s",
-                static_cast<uint32_t>(ex.code()), ex.message().c_str());
-            Log(L"  Recovery: verify LAF token is valid and the feature status is Available.");
-            return;
-        }
-        Log(L"  Appended '%s' to DesktopInfos — should now appear in registry", sampleId);
+        desktopInfos.Append(info);
     }
-    else
+    catch (const winrt::hresult_error& ex)
     {
-        Log(L"  '%s' already registered, skipping Append", sampleId);
+        Log(L"  Append failed (0x%08X): %s",
+            static_cast<uint32_t>(ex.code()), ex.message().c_str());
+        Log(L"  Recovery: verify LAF token is valid and the feature status is Available.");
+        return;
+    }
+    Log(L"  Appended '%s' to DesktopInfos — should now appear in registry", sampleId);
+
+    // --- RemoveAt: clean up the entry we just added ---
+    // Demonstrating RemoveAt keeps the sample self-cleaning and idempotent: the sample id
+    // stays stable and re-running does not accumulate duplicate registry entries.
+    // The freshly appended entry is the last element in the vector.
+    try
+    {
+        desktopInfos.RemoveAt(desktopInfos.Size() - 1);
+        Log(L"  Removed '%s' from DesktopInfos — registry entry cleaned up", sampleId);
+    }
+    catch (const winrt::hresult_error& ex)
+    {
+        Log(L"  RemoveAt failed (0x%08X): %s",
+            static_cast<uint32_t>(ex.code()), ex.message().c_str());
     }
 }
