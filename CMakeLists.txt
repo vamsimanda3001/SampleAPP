@@ -35,6 +35,7 @@ add_executable(${PROJECT_NAME} WIN32
     src/utils.cpp
     src/RemoteDesktopInfo.cpp
     src/RemoteDesktopRegistrar.cpp
+    src/RemoteDesktopConnectionInfo.cpp
     src/app.rc
 )
 
@@ -49,6 +50,7 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         windowsapp
+        OneCoreUAP
 )
 
 target_compile_definitions(${PROJECT_NAME}
