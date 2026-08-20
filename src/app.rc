@@ -1,0 +1,9 @@
+// Resource file for LAF (Limited Access Feature) identity
+// Required for unpackaged apps to unlock limited access features.
+Identity LimitedAccessFeature { L"RemoteDesktopProviderSample_955ksfw34s3d4" }
+
+// Embed the application manifest with <msix> element.
+// This tells the Windows loader to associate this process with the
+// registered sparse package, granting it package identity at startup.
+#include <winuser.h>
+1 RT_MANIFEST "RemoteDesktopProviderSample.exe.manifest"
